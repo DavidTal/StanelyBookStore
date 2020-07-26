@@ -50,13 +50,14 @@ public class MainController {
 		}else {
 			book = bookOptional.get(); 
 			System.out.println(MessageFormat.format("Book[{0}] already exist, updating with quantity[{1}]", book, quantity)); 
+			book.setAuthor(author);
 			book.increase(quantity);
 		}
 		
 		bookRepository.save(book);
 		System.out.println("Added book-data: " + book);
 		response.addHeader("Access-Control-Allow-Origin", "*");
-		return MessageFormat.format("Added book: {0}, Author: {1}, Quantity: {2}, book-id: {3}", 
+		return MessageFormat.format("Added book: {0}, Author: {1}, Quantity: {2}, book-id: {3}.", 
 				book.getBookName(), book.getAuthor(), book.getQuantity(), book.getBookId()); 
 	}
 
@@ -85,18 +86,6 @@ public class MainController {
 			return updatedOrder(orderData, OrderStatus.CANCEL_INSIFFCIENT_QUANTITY, bookName); 
 		}
 		
-		//For SYNC test only
-		/*
-		System.out.println("After book fetch - before sleep");
-		try {
-			Thread.sleep(15000);
-		} catch (InterruptedException e) {
-			System.err.println(e); 
-			e.printStackTrace();
-		}
-		System.out.println("After book fetch - after sleep");
-		*/
-		
 		System.out.println(MessageFormat.format("Buying book[{0}], quantity[{1}]", bookOptional, quantity));
 		book.decrease(quantity);
 		bookRepository.save(book);
@@ -121,7 +110,7 @@ public class MainController {
 	@GetMapping(path = "/order")
 	public @ResponseBody String getOrderData(@RequestParam Integer orderId, HttpServletResponse response) {
 		response.addHeader("Access-Control-Allow-Origin", "*");
-		System.out.println("in get order data");
+		System.out.println("in get order data, orderId: " + orderId);
 		
 		Optional<OrderData> orderData = this.orderDataRepository.findById(orderId); 
 		if (orderData.isEmpty()) {
@@ -131,10 +120,12 @@ public class MainController {
 		
 		System.out.println("Found order-data: " + orderData.get());
 		Optional<BookData> bookData = this.bookRepository.findById(orderData.get().getBookId());
-		
 		if (bookData.isEmpty()) {
-			System.err.println("Failed to find book data for orderData: " + orderData);
-			return "Failed to find book data for orderId: " + orderData.get().getOrderId(); 
+			System.out.println("Failed to find book data for orderData: " + orderData);
+			
+			return MessageFormat.format("Order id: {0} status is: {1}, quantity: {2}, It seems that no book was found for this order.", 
+					orderData.get().getOrderId(), orderData.get().getStatus(), 
+					orderData.get().getQuantity()); 
 		}
 		
 		return MessageFormat.format("Order id: {0} status is: {1}, book-name: {2}, quantity: {3}", orderData.get().getOrderId(), orderData.get().getStatus(), 
